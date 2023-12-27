@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>엑셀 파일 업로드</title>
+    <style>
+        .highlighted {
+            background-color: yellow;
+        }
+
+
+          .form-row {
+            display: inline-block;
+            margin-right: 10px;
+            vertical-align: top;
+        }
+    </style>
+</head>
+<body>
+<input type="hidden" id="encoded-data" value="{{ encoded_data }}" />
+    <h1>엑셀 파일 업로드</h1>
+
+    <form action="/api/upload/" enctype="multipart/form-data" method="post">
+        <input type="file" name="file">
+        <button type="submit">업로드</button>
+    </form>
+    <div>
+        <input type="text" id="contentInput">
+        <button onclick="addContent()">추가</button>
+    </div>
+
+
+
+
+
+
+    <ul id="contentList"></ul>
+    <script>
+        function addContent() {
+            var inputValue = document.getElementById("contentInput").value;
+            var contentList = document.getElementById("contentList");
+            var newItem = document.createElement("li");
+            newItem.appendChild(document.createTextNode(inputValue));
+            contentList.appendChild(newItem);
+            document.getElementById("contentInput").value = ""; // 입력란 초기화
+        }
+
+        // submitContent 함수를 여기에 정의합니다.
+function submitContent() {
+    console.log("Submit button clicked");
+
+    var selectedColumnCheckboxes = document.querySelectorAll(".column-checkbox:checked");
+    var selectedColumns = Array.from(selectedColumnCheckboxes).map((checkbox) => checkbox.value);
+    var contentListItems = document.querySelectorAll("#contentList li");
+    var contentItems = Array.from(contentListItems).map((li) => li.textContent);
+    var encodedData = document.getElementById('encoded-data').value;
+
+    var formData = new FormData();
+    formData.append("selected_columns", JSON.stringify(selectedColumns));
+    formData.append("content_items", JSON.stringify(contentItems));
+    formData.append("encoded_data", encodedData);
+
+    console.log("Sending fetch request...");
+
+    // 폼 데이터를 서버로 전송
+    fetch("/api/send-list/", {
+        method: "POST",
+        body: formData,
+    })
+    .then((response) => {
+        if (!response.ok) {
+            throw new Error("Network response was not ok");
+        }
+        return response.blob();
+    })
+    .then((blob) => {
+        // Blob을 다운로드할 링크 생성
+        var downloadLink = document.createElement('a');
+        downloadLink.href = URL.createObjectURL(blob);
+        downloadLink.download = "downloaded_excel.xlsx";
+        downloadLink.style.display = "none";
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+
+        console.log("Excel data downloaded successfully");
+    })
+    .catch((error) => {
+        console.error('Fetch error:', error);
+    });
+}
+
+    </script>
+
+    {% if file_data %}
+
+    <table border="1">
+        <tr>
+
+<form action="/api/send-list/" method="post" id="sendListForm" enctype="multipart/form-data">
+
+            {% for index, _ in enumerate(file_data[0]) %}
+            <th>
+                <input type="checkbox" class="column-checkbox" name="selected_column" value="{{ index }}" data-index="{{ index }}">
+                        {{ index }}번 열 선택
+            </th>
+            {% endfor %}
+  <button type="button" onclick="submitContent()" >데이터 전송</button>
+            </form>
+        {% for row in file_data %}
+        <tr>
+            {% for index, cell in enumerate(row) %}
+            <td>{{ cell }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </table>
+    </script>
+    {% endif %}
+
+
+
+</body>
+</html>
