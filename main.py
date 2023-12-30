@@ -24,7 +24,9 @@ import json
 import os
 import tempfile
 
+print("hello")
 
+print("hello")
 
 
 db = SessionLocal()
@@ -91,17 +93,22 @@ def get_Lpackage_filter_Lpack(listly):
 
 def get_Lpartnmuber_filter_Lpack(listly):
     original_list=get_all_Lpackage_partnumber_from_db(db)
-    modified_list = [item[0].replace('(', '') for item in original_list]
+
+    original_list = [s.strip() for s in original_list]
 
     listly=flatten(listly)
-    list_result=' '.join((str,listly))
+    listly=[str(i).strip() for i in listly]
+
 
     x=""
-    for i in range(len(modified_list)):
-        finder=modified_list[i]
-        if finder in list_result:
-            x= finder
-            break
+    for i in range(len(original_list)):
+        finder=original_list[i]
+
+        for s in range(len(listly)):
+            if finder in listly[s]:
+                x=finder
+                print(x)
+                break
     return x
 
 
@@ -158,6 +165,18 @@ def wat_resize(wat):
             패턴 = r"\d+"
             추출된_숫자들 = re.findall(패턴, wat, re.IGNORECASE)
             return float(추출된_숫자들[0]) * 0.001
+
+def extract_number(text):
+    match = re.search(r'(\d+)(K|k)', text)
+    print("hello")
+    if match:
+        print(match.group(1),"@@")
+        return match.group(1)
+    else:
+        return None
+
+
+
 
 
 def om(rest):
@@ -400,9 +419,17 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
             data_item = data[list_row[i]]
             for s in range(len(data_item)):
                 try:
+                    print("hello")
+                    database_list = hello2(db)
+
                     matchnorm = re.search(patternom, data_item[s][0])
                     match_k=re.findall(k_pattern,data_item[s][0])
-                    if matchnorm:
+
+                    print(data_item ,"@~")
+
+
+
+                    if matchnorm and character=="R":
                         resistance_number = 2
                         resistance_value = matchnorm.group(0)
                         patternmega = r'㏁'
@@ -416,13 +443,15 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
 
                         break
                     if not matchnorm and match_k:
-                        resistance_number = 2
+                        if character=="R":
+                            resistance_number = 2
                         resistance_value = match_k[0]
                         for k in range(len(result_data)):
                             if result_data[k][0] == list_row[i]:
-                                result_data[k].append(resistance_value)
+                                result_data[k].append(extract_number(resistance_value))
 
                         break
+
 
 
 
@@ -541,6 +570,7 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
 
 
         package_number=1
+        part_number=1
 
         if character=="R" or character=="C":
             package_number = 2
@@ -558,6 +588,7 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
 
         if character=="L":
             package_number=2
+            part_number=2
             for i in range(len(list_row)):
                 data_item=data[list_row[i]]
                 for k in range(len(result_data)):
@@ -565,9 +596,51 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
                         strings=get_Lpackage_filter_Lpack(data_item)
                         result_data[k].append(strings)
 
+            for s in range(len(list_row)):
+                data_item=data[list_row[s]]
+                for k in range(len(result_data)):
+                    if result_data[k][0]==list_row[s]:
+                        strings2=get_Lpartnmuber_filter_Lpack(data_item)
+                        result_data[k].append(strings2)
+
+            for i in range(len(list_row)):
+                data_item = data[list_row[i]]
+                for s in range(len(data_item)):
+                    try:
+                        patternuH="(\d+(\.\d+)?)\s*uH"
+                        match = re.search(patternuH, data_item[s][0], re.IGNORECASE)
+                        if match:
+                            uH_value = match.group(0)
+                            for k in range(len(result_data)):
+                                if result_data[k][0] == list_row[i]:
+                                    result_data[k].append(uH_value)
+                            break
+                        else:
+                            uH_value = ""
+
+                    except:
+                        resistance_value = ""
 
         if package_number==2:
+            if character=="C":
+                list_table_number.append("PACKAGE")
+            if character=="R":
+                list_table_number.append("PACKAGE")
+
+
+
+
+        if package_number==2 and character=="L":
             list_table_number.append("PACKAGE")
+            list_table_number.append("PARTNUMBER")
+            list_table_number.append("uH_value")
+
+
+
+
+
+
+
 
 
 
@@ -593,6 +666,13 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
             num = len(character)
             row[0] = int(row[1][num:])
 
+
+        print(result_data,"@@@")
+        print(list_table_number,"@@@")
+
+
+
+
         result_data.insert(0, list_table_number)
 
 
@@ -603,7 +683,7 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
 
         A_table = ["No", "REF NO","PACKAGE" ,"RATED_POWER[W]", "TOLERANCE", "RESISTANCE"]
         B_table = ["No", "REF NO","PACKAGE","CAPACITANCE", "VOLTAGE", "GRADE", "TOLERANCE", "TEMPERATURE"]
-
+        L_table=['No','REF NO','PARTNUMBER','PACKAGE','uH_value']
         sorted_df = df.sort_values(by='No')
 
         # print("@@@", sorted_df)
@@ -617,7 +697,7 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
 
 
         if character=="L":
-            column_order=B_table
+            column_order=L_table
 
 
 
@@ -672,15 +752,19 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
             pass
 
         if character=="C":
-            sorted_df.loc[sorted_df['GRADE'] == 'X7R', "TEMPERATURE"] = "+125°C"
-            sorted_df.loc[sorted_df['GRADE']=='X5R', "TEMPERATURE"] = "+85°C"
-            sorted_df.loc[sorted_df['GRADE']=='X7S',"TEMPERATURE"]="+125°C"
-            sorted_df.loc[sorted_df['GRADE']=="X7T","TEMPERATURE"]="+125°C"
-            sorted_df.loc[sorted_df['GRADE']=="C0G","TEMPERATURE"]="+125°C"
-            sorted_df.loc[sorted_df['GRADE']=="Y5V","TEMPERATURE"]="+125°C"
-            sorted_df.loc[sorted_df['GRADE'] == 'X7S', "TEMPERATURE"] = "+125°C"
-            sorted_df.loc[sorted_df['GRADE']=="X6S","TEMPERATURE"]="+105°C"
-        # print(sorted_df)
+            grade_temperature_mapping = {
+                'X7R': '+125°C',
+                'X5R': '+85°C',
+                'X7S': '+125°C',
+                'X7T': '+125°C',
+                'C0G': '+125°C',
+                'Y5V': '+125°C',
+                'X6S': '+105°C'
+            }
+
+            # 'GRADE' 열 값을 기반으로 'TEMPERATURE' 열 업데이트
+            sorted_df['TEMPERATURE'] = sorted_df['GRADE'].map(grade_temperature_mapping)
+            # print(sorted_df)
         sorted_df_by_column_order = sorted_df[column_order]
         charact_sheet = work[character]
         for row in dataframe_to_rows(sorted_df_by_column_order, index=False, header=True):

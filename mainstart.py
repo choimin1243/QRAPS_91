@@ -8,7 +8,7 @@ import models
 from database import engine
 from fastapi import FastAPI, Form, Request, Depends
 from Lpackage import Lpack
-
+print("h")
 app = FastAPI(openapi_url="/api/openapi.json", docs_url="/api/docs")
 
 templates = Jinja2Templates(directory="templates")
