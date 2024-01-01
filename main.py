@@ -1,19 +1,12 @@
-from fastapi import UploadFile, File
-from fastapi.templating import Jinja2Templates
 from openpyxl import Workbook  # 추가된 부분
 import re
 import pandas as pd
 from io import BytesIO
 from openpyxl.utils.dataframe import dataframe_to_rows
-from fastapi import FastAPI, Form, Request
 from fastapi.responses import StreamingResponse
-import openpyxl
-import json
-from fastapi import APIRouter
 from fastapi.templating import Jinja2Templates
 from fastapi import FastAPI, Form, Request, Depends
 from fastapi import APIRouter, Request
-from package import get_all_todos_from_db, hello
 from database import SessionLocal  # SessionLocal을 불러옴
 from rcpackage import hello2
 from Lpackage import get_all_Lpackage_package_from_db, get_all_Lpackage_partnumber_from_db
@@ -24,9 +17,6 @@ import json
 import os
 import tempfile
 
-print("hello")
-
-print("hello")
 
 
 db = SessionLocal()
@@ -86,7 +76,6 @@ def get_Lpackage_filter_Lpack(listly):
         for s in range(len(listly)):
             if finder in listly[s]:
                 x=finder
-                print(x)
                 break
     return x
 
@@ -107,7 +96,6 @@ def get_Lpartnmuber_filter_Lpack(listly):
         for s in range(len(listly)):
             if finder in listly[s]:
                 x=finder
-                print(x)
                 break
     return x
 
@@ -168,9 +156,7 @@ def wat_resize(wat):
 
 def extract_number(text):
     match = re.search(r'(\d+)(K|k)', text)
-    print("hello")
     if match:
-        print(match.group(1),"@@")
         return match.group(1)
     else:
         return None
@@ -259,6 +245,7 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
 
         tolerance_values = ["J", "F", "A", "B", "G", "M", "Z"]
 
+
         # 수정된 정규식
         pattern_tor = r"(?<![A-Za-z0-9.,-])(?:{})(?![A-Za-z0-9.,])".format("|".join(tolerance_values))
 
@@ -271,6 +258,9 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
 
         result_data = []
 
+        DIOD=[r"(?<!\S)"+"D"+"(\d+)",r"(?<!\S)"+"LED"+"(\d+)",r"(?<!\S)"+"ZD"+"(\d+)",r"(?<!\S)"+"BD"+"(\d+)"]
+
+
         character = charact
         pattern = r"(?<!\S)" + character + "(\d+)"
 
@@ -282,11 +272,21 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
                 if datas[0] != None:
                     parsed_data = [row.replace(" ", "").split(",") for row in datas[0].split("\n")]
                     flattened_data = [item for sublist in parsed_data for item in sublist]
-                    if re.findall(pattern, flattened_data[0], re.IGNORECASE):
+                    if re.findall(pattern, flattened_data[0], re.IGNORECASE) and character!="D":
                         list_row.append(i)
                         for s in range(len(flattened_data)):
                             if flattened_data[s] != '':
                                 result_data.append([i, flattened_data[s].strip()])
+
+
+                    if character=="D":
+                        for k in range(len(DIOD)):
+                            if re.findall(DIOD[k],flattened_data[0],re.IGNORECASE):
+                                list_row.append(i)
+                                for s in range(len(flattened_data)):
+                                    if flattened_data[s] != '':
+                                        result_data.append([i, flattened_data[s].strip()])
+
 
 
             except:
@@ -405,6 +405,8 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
                 except:
                     resistance_value = ""
 
+
+
         if tolerance_number == 2:
             max_columns = max(len(row) for row in result_data)
             for row in result_data:
@@ -413,13 +415,13 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
             list_table_number.append("TOLERANCE")
 
         patternom = r"(?:,\s*)?(\d+(?:\.\d+)?)(?:\s*(?:㏀|Ω|k㏀|kΩ|mΩ|㏁|MΩ))\s*\*?\d?"
-        k_pattern=r"\d+K"
+        k_pattern=r'(?<![A-Za-z\d])\d+K(?![A-Za-z\d])'
+        print(result_data,"~~~!!!!!!!")
 
         for i in range(len(list_row)):
             data_item = data[list_row[i]]
             for s in range(len(data_item)):
                 try:
-                    print("hello")
                     database_list = hello2(db)
 
                     matchnorm = re.search(patternom, data_item[s][0])
@@ -445,12 +447,12 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
                     if not matchnorm and match_k:
                         if character=="R":
                             resistance_number = 2
-                        resistance_value = match_k[0]
-                        for k in range(len(result_data)):
-                            if result_data[k][0] == list_row[i]:
-                                result_data[k].append(extract_number(resistance_value))
+                            resistance_value = match_k[0]
+                            for k in range(len(result_data)):
+                                if result_data[k][0] == list_row[i]:
+                                    result_data[k].append(extract_number(resistance_value))
 
-                        break
+                            break
 
 
 
@@ -470,6 +472,8 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
             list_table_number.append("RESISTANCE")
 
         temp_number = 1
+
+
 
         for i in range(len(list_row)):
             data_item = data[list_row[i]]
@@ -532,10 +536,10 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
                     row.append("None")
 
             list_table_number.append("CAPACITANCE")
-        #
-        #
-        #
-        #
+
+
+
+
 
 
         pattern_caps = r"(X7R|X5R|COG|NPO|X5S|X6S|C0G|X7T|X7S|Y5V|X6S|NPO)"
@@ -586,7 +590,7 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
 
 
 
-        if character=="L":
+        if character=="L" or character=="D":
             package_number=2
             part_number=2
             for i in range(len(list_row)):
@@ -602,13 +606,33 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
                     if result_data[k][0]==list_row[s]:
                         strings2=get_Lpartnmuber_filter_Lpack(data_item)
                         result_data[k].append(strings2)
+            if character == "L":
+                for i in range(len(list_row)):
+                    data_item = data[list_row[i]]
+                    for s in range(len(data_item)):
+                        try:
+                            patternuH="(\d+(\.\d+)?)\s*uH"
+                            match = re.search(patternuH, data_item[s][0], re.IGNORECASE)
+                            if match:
+                                uH_value = match.group(0)
+                                for k in range(len(result_data)):
+                                    if result_data[k][0] == list_row[i]:
+                                        result_data[k].append(uH_value)
+                                break
+                            else:
+                                uH_value = ""
+
+                        except:
+                            resistance_value = ""
+
+        if character == "D":
+            pattern = r'(?<![A-Za-z])\d+(\.\d+)?\s*(A|KA)(?![A-Za-z])'
 
             for i in range(len(list_row)):
                 data_item = data[list_row[i]]
                 for s in range(len(data_item)):
                     try:
-                        patternuH="(\d+(\.\d+)?)\s*uH"
-                        match = re.search(patternuH, data_item[s][0], re.IGNORECASE)
+                        match = re.search(pattern, data_item[s][0], re.IGNORECASE)
                         if match:
                             uH_value = match.group(0)
                             for k in range(len(result_data)):
@@ -621,6 +645,12 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
                     except:
                         resistance_value = ""
 
+
+
+
+
+
+
         if package_number==2:
             if character=="C":
                 list_table_number.append("PACKAGE")
@@ -630,16 +660,21 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
 
 
 
-        if package_number==2 and character=="L":
+        if character=="L":
             list_table_number.append("PACKAGE")
             list_table_number.append("PARTNUMBER")
             list_table_number.append("uH_value")
 
 
 
+        if character=="D":
+            list_table_number.append("PACKAGE")
+            list_table_number.append("PARTNUMBER")
+            list_table_number.append("amphere")
 
 
-
+        print(result_data,"~~!!!!")
+        print(list_table_number)
 
 
 
@@ -663,12 +698,13 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
                 row[1] = character + row[1]
 
         for row in result_data:
-            num = len(character)
-            row[0] = int(row[1][num:])
+            try:
+                num = len(character)
+                row[0] = int(row[1][num:])
 
+            except:
+                row[0]=None
 
-        print(result_data,"@@@")
-        print(list_table_number,"@@@")
 
 
 
@@ -679,11 +715,13 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
         df = pd.DataFrame(result_data[1:], columns=result_data[0])
 
 
+        print(result_data)
 
 
         A_table = ["No", "REF NO","PACKAGE" ,"RATED_POWER[W]", "TOLERANCE", "RESISTANCE"]
         B_table = ["No", "REF NO","PACKAGE","CAPACITANCE", "VOLTAGE", "GRADE", "TOLERANCE", "TEMPERATURE"]
         L_table=['No','REF NO','PARTNUMBER','PACKAGE','uH_value']
+        D_table=['No','REF NO','PARTNUMBER','PACKAGE','VOLTAGE','amphere',"TEMPERATURE"]
         sorted_df = df.sort_values(by='No')
 
         # print("@@@", sorted_df)
@@ -699,7 +737,8 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
         if character=="L":
             column_order=L_table
 
-
+        if character=="D":
+            column_order=D_table
 
         for column in column_order:
             if column not in sorted_df:
@@ -764,11 +803,20 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
 
             # 'GRADE' 열 값을 기반으로 'TEMPERATURE' 열 업데이트
             sorted_df['TEMPERATURE'] = sorted_df['GRADE'].map(grade_temperature_mapping)
+
+
             # print(sorted_df)
         sorted_df_by_column_order = sorted_df[column_order]
+
+
         charact_sheet = work[character]
         for row in dataframe_to_rows(sorted_df_by_column_order, index=False, header=True):
             charact_sheet.append(row)
+
+        last_row = charact_sheet.max_row
+
+        for i in range(last_row):
+            charact_sheet.cell(row=i+2, column=1, value=i+1)
 
     work.save(output_excel)
 

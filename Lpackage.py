@@ -18,6 +18,9 @@ def get_db():
         db.close()
 
 
+db = SessionLocal()
+
+
 
 @Lpack.get("/")
 async def render_upload_form(request: Request):
@@ -26,8 +29,26 @@ async def render_upload_form(request: Request):
 
 def call_Lpackage(db: Session = Depends(get_db)):
     Lpacks = db.query(Lpackage).all()
-    package=[package.title for package in Lpacks]
+    package=[package.package for package in Lpacks]
     return package
+
+
+def call_Lpartnumber(db: Session=Depends(get_db)):
+    Lpacks=db.query(Lpackage).all()
+    partnum=[package.partnumber for package in Lpacks]
+    return partnum
+
+
+
+
+
+
+hh1=call_Lpackage(db)
+ff1=call_Lpartnumber(db)
+
+print(ff1)
+print(hh1)
+
 
 
 @Lpack.post("/send-text/")

@@ -38,3 +38,19 @@ models.Base.metadata.create_all(bind=engine)
 @app.get("/")
 async def render_upload_form(request: Request):
     return templates.TemplateResponse("main.html", {"request": request})
+
+
+
+
+
+
+
+
+
+
+
+
+
+@app.get("/")
+async def render_upload_form(request: Request):
+    return templates.TemplateResponse("main.html", {"request": request})
