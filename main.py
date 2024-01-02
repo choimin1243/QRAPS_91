@@ -590,7 +590,7 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
 
 
 
-        if character=="L" or character=="D":
+        if character=="L" or character=="D" or character=="Q":
             package_number=2
             part_number=2
             for i in range(len(list_row)):
@@ -673,6 +673,11 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
             list_table_number.append("amphere")
 
 
+        if character=="Q":
+            list_table_number.append("PACKAGE")
+            list_table_number.append("PARTNUMBER")
+
+
         print(result_data,"~~!!!!")
         print(list_table_number)
 
@@ -718,6 +723,7 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
         print(result_data)
 
 
+        Q_table=['No','REF NO','PARTNUMBER','PACKAGE']
         A_table = ["No", "REF NO","PACKAGE" ,"RATED_POWER[W]", "TOLERANCE", "RESISTANCE"]
         B_table = ["No", "REF NO","PACKAGE","CAPACITANCE", "VOLTAGE", "GRADE", "TOLERANCE", "TEMPERATURE"]
         L_table=['No','REF NO','PARTNUMBER','PACKAGE','uH_value']
@@ -739,6 +745,10 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
 
         if character=="D":
             column_order=D_table
+
+
+        if character=="Q":
+            column_order=Q_table
 
         for column in column_order:
             if column not in sorted_df:
