@@ -16,6 +16,7 @@ import openpyxl
 import json
 import os
 import tempfile
+import openai
 
 
 
@@ -720,7 +721,7 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
         df = pd.DataFrame(result_data[1:], columns=result_data[0])
 
 
-        print(result_data)
+        print("@@",result_data)
 
 
         Q_table=['No','REF NO','PARTNUMBER','PACKAGE']
@@ -827,6 +828,85 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
 
         for i in range(last_row):
             charact_sheet.cell(row=i+2, column=1, value=i+1)
+
+
+
+        if character=="Q":
+            openai.api_key = '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'
+            question = "is it FET? or BJT? just say FET or BJT."
+
+            FET = []
+            BJT = []
+            ELSEQ = []
+            for i in range(len(result_data)):
+                string = result_data[i]
+
+                response = openai.ChatCompletion.create(
+                    model="gpt-4",  # 'text-davinci-004' 대신 최신 모델 사용
+                    messages=[
+                        {"role": "system", "content": "You are a helpful assistant."},
+                        {"role": "user", "content": "it is" + str(string) + question}
+                    ]
+                )
+
+                if response['choices'][0]['message']['content'] == "FET":
+                    FET.append(string)
+
+                if response['choices'][0]['message']['content'] == "BJT":
+                    BJT.append(string)
+
+                if response['choices'][0]['message']['content'] != "BJT" and response['choices'][0]['message'][
+                    'content'] != "FET":
+                    ELSEQ.append(string)
+
+            head_list=['No', 'REF NO', 'PACKAGE', 'PARTNUMBER']
+
+            FET.insert(0,head_list)
+            BJT.insert(0,head_list)
+
+            print("안녕")
+            print("@@",FET)
+
+            print(BJT)
+            work.create_sheet(title="FET")
+            work.create_sheet(title="BJT")
+            work.create_sheet(title="해당안됨")
+            charact_sheet1 = work["FET"]
+            charact_sheet2 = work["BJT"]
+            charact_sheet3 = work["해당안됨"]
+
+            FET_df = pd.DataFrame(FET)
+            BJT_df=pd.DataFrame(BJT)
+            ELSEQ_df=pd.DataFrame(ELSEQ)
+
+
+            print(FET_df)
+            for row in dataframe_to_rows(FET_df, index=False, header=False):
+                charact_sheet1.append(row)
+
+            last_row = charact_sheet1.max_row
+            for i in range(last_row):
+                charact_sheet1.cell(row=i + 2, column=1, value=i + 1)
+
+
+            for row in dataframe_to_rows(BJT_df, index=False, header=False):
+                charact_sheet2.append(row)
+
+            last_row = charact_sheet2.max_row
+            for i in range(last_row):
+                charact_sheet1.cell(row=i + 2, column=1, value=i + 1)
+
+
+            for row in dataframe_to_rows(ELSEQ_df, index=False, header=False):
+                charact_sheet3.append(row)
+
+            last_row = charact_sheet3.max_row
+            for i in range(last_row):
+                charact_sheet3.cell(row=i + 2, column=1, value=i + 1)
+
+
+
+
 
     work.save(output_excel)
 
