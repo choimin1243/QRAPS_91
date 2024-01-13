@@ -832,7 +832,7 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
 
 
         if character=="Q":
-            openai.api_key = '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'
+            openai.api_key = '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'
             question = "is it FET? or BJT? just say FET or BJT."
 
             FET = []
@@ -840,13 +840,12 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
             ELSEQ = []
             for i in range(len(result_data)):
                 string = result_data[i]
-                len_last=len(string)-1
-                part_number=string[len_last]
+
                 response = openai.ChatCompletion.create(
                     model="gpt-4",  # 'text-davinci-004' 대신 최신 모델 사용
                     messages=[
                         {"role": "system", "content": "You are a helpful assistant."},
-                        {"role": "user", "content": "partnumber is" + str(part_number) + question}
+                        {"role": "user", "content": "it is" + str(string) + question}
                     ]
                 )
 
@@ -860,7 +859,7 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
                     'content'] != "FET":
                     ELSEQ.append(string)
 
-            head_list=['No', 'REF NO','VOLTAGE','PACKAGE', 'PARTNUMBER']
+            head_list=['No', 'REF NO', 'PACKAGE', 'PARTNUMBER']
 
             FET.insert(0,head_list)
             BJT.insert(0,head_list)
