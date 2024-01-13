@@ -832,7 +832,7 @@ async def send_list(request: Request, selected_columns: str = Form(...), content
 
 
         if character=="Q":
-            openai.api_key = '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'
+            openai.api_key = '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'
             question = "is it FET? or BJT? just say FET or BJT."
 
             FET = []
